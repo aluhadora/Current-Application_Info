@@ -5,6 +5,7 @@ using System.Data;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
+using System.Management;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -27,7 +28,7 @@ namespace Name_of_Currently_Active_Application
       {
         var p = GetActiveProcess();
         textLabel.Text = p.MainWindowTitle;
-        pathLabel.Text = p.MainModule.FileName;
+        pathLabel.Text = GetMainModuleFilepath(p.Id);
       }
       catch (Exception)
       {
@@ -46,6 +47,23 @@ namespace Name_of_Currently_Active_Application
       uint pid;
       GetWindowThreadProcessId(hwnd, out pid);
       return Process.GetProcessById((int)pid);
+    }
+
+    private string GetMainModuleFilepath(int processId)
+    {
+      string wmiQueryString = "SELECT ProcessId, ExecutablePath FROM Win32_Process WHERE ProcessId = " + processId;
+      using (var searcher = new ManagementObjectSearcher(wmiQueryString))
+      {
+        using (var results = searcher.Get())
+        {
+          ManagementObject mo = results.Cast<ManagementObject>().FirstOrDefault();
+          if (mo != null)
+          {
+            return (string)mo["ExecutablePath"];
+          }
+        }
+      }
+      return null;
     }
   }
 }
